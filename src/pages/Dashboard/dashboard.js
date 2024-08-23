@@ -4,6 +4,7 @@ import { faGauge,faUserGroup,faMoneyBill,faChartSimple,faGear,faClock,faBell,faA
 import axios from 'axios';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from "../../context/AuthContext";
+import useAxiosInstance from "../../components/axiosInstance";
 
 const Dashboard = () => {
   const base_url = 'https://testnet.jamfortetech.com'
@@ -15,7 +16,9 @@ const Dashboard = () => {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState(null);
 
-  console.log('dsh', user);
+  const getAxiosInstance = useAxiosInstance()
+
+  // console.log('dsh', user);
   
 
   const handleLogout = () => {
@@ -25,9 +28,12 @@ const Dashboard = () => {
 
   // Handling Inventory Section
 
-  const handleDelete = async (productId) => {
+  const handleDelete = async (pharmacyId,storeId,productId) => {
+    const axiosInstance = getAxiosInstance();
     try {
-      await axios.delete(`${base_url}/api/v1/pharmacies/:pharmacyId/stores/:storeId/products/:productId`); // Replace with your API endpoint
+      console.log(pharmacyId,storeId,productId);
+      
+      await axiosInstance.get(`/api/v1/pharmacies/${pharmacyId}/stores/${storeId}/products/${productId}`);
 
       // Remove the deleted product from the state
       setProducts(products.filter(product => product.id !== productId));
@@ -38,17 +44,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Fetch the list of products
+    const axiosInstance = getAxiosInstance();
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(
-          `${base_url}/api/v1/super-admin/${user.data[0].superAdminId}/products`,
+        const response = await axiosInstance.get(
+          `/api/v1/super-admin/${user.data[0].superAdminId}/products`,
           {
             headers: {
               Authorization: `Bearer ${user.token}`,
             }
           });
-        setProducts(response.data);
-        console.log(response.data);
+        setProducts(response.data.data[0]);
+        // console.log(response.data.data);
       } catch (error) {
         setError(error.message);
       }
@@ -58,6 +65,8 @@ const Dashboard = () => {
   }, []);
   // End Of Inventory Section
 
+  // console.log(products.length != 0 ? products[0].storeDetails[0].pharmacyDetails[0].name : 'No product');
+  
   return (
     <>
     <div className="flex h-screen bg-gray-100">
@@ -203,132 +212,33 @@ const Dashboard = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <img src="https://via.placeholder.com/50" alt="Example" className="w-12 h-12 object-cover" />
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">Product 1</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Pharmacy A</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Category 1</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">NGN 10.00</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">20</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Brand X</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 text-center">
-                                  <button className='bg-green-100 text-green-500 px-6 py-1 rounded-md font-medium'>In Stock</button>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
-                                    <td id="table-icons" className='flex align-center'>
-                                      <button className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-l-md'><FontAwesomeIcon className='text-gray-500' icon={faEdit}/></button>
-                                      <button className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-r-md'><FontAwesomeIcon className='text-red-400' icon={faTrashAlt}/></button>
-                                    </td>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <img src="https://via.placeholder.com/50" alt="Example" className="w-12 h-12 object-cover" />
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">Product 2</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Pharmacy B</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Category 2</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">NGN 15.00</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">30</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Brand Y</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                          {products.length === 0 ? <p>Loading...</p> : 
+                          products.map(product => (
+                            <tr key={product._id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                  <img src={`https://testnet.jamfortetech.com/${product.images}`} alt="Example" className="w-12 h-12 object-cover" />
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">{product.name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">{product.storeDetails[0].pharmacyDetails[0].name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">{product.category}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">NGN {product.price}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">{product.quantity}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">{product.manufacturer}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 text-center">
+                                {product.availability ? 
+                                  <button className='bg-green-100 text-green-500 px-6 py-1 rounded-md font-medium'>In Stock</button> 
+                                  :
                                   <button className='bg-red-100 text-red-500 px-3 py-1 rounded-md font-medium'>Out of Stock</button>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
+                                }
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                                   <td id="table-icons" className='flex align-center'>
                                     <button className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-l-md'><FontAwesomeIcon className='text-gray-500' icon={faEdit}/></button>
-                                    <button className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-r-md'><FontAwesomeIcon className='text-red-400' icon={faTrashAlt}/></button>
+                                    <button onClick={() => handleDelete(product.storeDetails[0].pharmacyDetails[0].pharmacyId ,product.storeDetails[0].storeId, product.productId)} className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-r-md'><FontAwesomeIcon className='text-red-400' icon={faTrashAlt}/></button>
                                   </td>
-                                </td>
+                              </td>
                             </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <img src="https://via.placeholder.com/50" alt="Example" class="w-12 h-12 object-cover" />
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">Product 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Pharmacy B</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Category 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">NGN 15.00</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">30</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Brand Y</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                                <button className='bg-red-100 text-red-500 px-3 py-1 rounded-md font-medium'>Out of Stock</button>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
-                                  <td id="table-icons" className='flex align-center'>
-                                    <button className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-l-md'><FontAwesomeIcon className='text-gray-500' icon={faEdit}/></button>
-                                    <button className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-r-md'><FontAwesomeIcon className='text-red-400' icon={faTrashAlt}/></button>
-                                  </td>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <img src="https://via.placeholder.com/50" alt="Example" class="w-12 h-12 object-cover" />
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">Product 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Pharmacy B</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Category 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">NGN 15.00</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">30</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Brand Y</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                                  <button className='bg-green-100 text-green-500 px-6 py-1 rounded-md font-medium'>In Stock</button>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
-                                  <td id="table-icons" className='flex align-center'>
-                                    <button className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-l-md'><FontAwesomeIcon className='text-gray-500' icon={faEdit}/></button>
-                                    <button className='border text-gray-800 px-3 py-1 bg-gray-50 rounded-r-md'><FontAwesomeIcon className='text-red-400' icon={faTrashAlt}/></button>
-                                  </td>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <img src="https://via.placeholder.com/50" alt="Example" class="w-12 h-12 object-cover" />
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">Product 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Pharmacy B</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Category 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">NGN 15.00</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">30</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Brand Y</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Out of Stock</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
-                                    <a class="text-blue-600 hover:text-blue-900">Edit</a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <img src="https://via.placeholder.com/50" alt="Example" class="w-12 h-12 object-cover" />
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">Product 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Pharmacy B</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Category 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">NGN 15.00</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">30</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Brand Y</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Out of Stock</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
-                                    <a class="text-blue-600 hover:text-blue-900">Edit</a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <img src="https://via.placeholder.com/50" alt="Example" class="w-12 h-12 object-cover" />
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">Product 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Pharmacy B</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Category 2</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">NGN 15.00</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">30</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Brand Y</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">Out of Stock</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
-                                    <a class="text-blue-600 hover:text-blue-900">Edit</a>
-                                </td>
-                            </tr>
-                            {/* <!-- Add more rows as needed --> */}
+                          ))}
                         </tbody>
                     </table>
                 </div>
